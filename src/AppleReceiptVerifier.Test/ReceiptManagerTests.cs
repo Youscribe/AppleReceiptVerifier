@@ -49,6 +49,37 @@ namespace AppleReceiptVerifier.Test
             });
 
         /// <summary>
+        /// Second valid response returned from apple via the http request
+        /// </summary>
+        private string validResponse2 = JsonConvert.SerializeObject(new
+        {
+            receipt = new
+            {
+                unique_identifier = "testUniqueIdentifier",
+                original_transaction_id = "testOriginalTransactionId",
+                bvrs = "testApplicationVersionNumber",
+                app_item_id = "testAppItemId",
+                transaction_id = "testTransactionId",
+                quantity = "1",
+                unique_vendor_identifier = "testUniqueVendorIdentifier",
+                product_id = "testProductId",
+                item_id = "testItemId",
+                version_external_identifier = "testVersionExternalIdentifier",
+                bid = "testBundleIdentifier",
+                purchase_date = "2013-01-01 00:00:00 Etc/GMT",
+                purchase_date_ms = "123456789",
+                purchase_date_pst = "2013-01-01 00:00:00 America/Los_Angeles",
+                original_purchase_date = "2013-01-01 00:00:00 Etc/GMT",
+                original_purchase_date_ms = "123456789",
+                original_purchase_date_pst = "2013-01-01 00:00:00 America/Los_Angeles",
+                cancellation_date = "2014-01-01 00:00:00 Etc/GMT",
+                is_trial_period = true,
+            },
+            latest_receipt = "base64string",
+            status = 0
+        });
+
+        /// <summary>
         /// Apple Http Request Mock
         /// </summary>
         private Mock<IAppleHttpRequest> appleHttpRequestMock;
@@ -132,6 +163,26 @@ namespace AppleReceiptVerifier.Test
         public void ValidateReceipt_HttoResponseValid_ResponseReceipt_UniqueIdentifier_ShouldBeValid()
         {
             this.ValidateProperty<string>("testUniqueIdentifier", x => x.Receipt.UniqueIdentifier);
+        }
+
+        /// <summary>
+        /// When validating the receipt and the http request returns a valid response with no is_trial_period the
+        /// response receipt is trial period should be false
+        /// </summary>
+        [TestMethod]
+        public void ValidateReceipt_HttoResponseValid_ResponseReceipt_IsTrialPeriod_ShouldBeFalse()
+        {
+            this.ValidateProperty(false, x => x.Receipt.IsTrialPeriod);
+        }
+
+        /// <summary>
+        /// When validating the receipt and the http request returns a valid response is_trial_period as true the
+        /// response receipt is trial period should be true
+        /// </summary>
+        [TestMethod]
+        public void ValidateReceipt_HttoResponseValid2_ResponseReceipt_IsTrialPeriod_ShouldBeTrue()
+        {
+            this.ValidateProperty(this.validResponse2, true, x => x.Receipt.IsTrialPeriod);
         }
 
         /// <summary>
@@ -322,7 +373,19 @@ namespace AppleReceiptVerifier.Test
         /// <param name="actualFunc">Actual FUNC to invoke</param>
         private void ValidateProperty<TType>(TType expected, Func<Response, TType> actualFunc)
         {
-            this.appleHttpRequestMock.Setup(x => x.GetResponse(It.IsAny<Uri>(), It.IsAny<string>())).Returns(this.validResponse);
+            this.ValidateProperty(this.validResponse, expected, actualFunc);
+        }
+
+        /// <summary>
+        /// Generic method to validate the property of the Response
+        /// </summary>
+        /// <typeparam name="TType">Data Type to compare</typeparam>
+        /// <param name="mockedResponse">The mocked response of the service</param>
+        /// <param name="expected">Expected value</param>
+        /// <param name="actualFunc">Actual FUNC to invoke</param>
+        private void ValidateProperty<TType>(string mockedResponse, TType expected, Func<Response, TType> actualFunc)
+        {
+            this.appleHttpRequestMock.Setup(x => x.GetResponse(It.IsAny<Uri>(), It.IsAny<string>())).Returns(mockedResponse);
             var response = this.receiptManager.ValidateReceipt(new Uri("http://www.test.com"), string.Empty);
             Assert.AreEqual(expected, actualFunc.Invoke(response));
         }

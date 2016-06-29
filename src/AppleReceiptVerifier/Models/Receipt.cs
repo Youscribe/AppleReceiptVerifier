@@ -238,5 +238,11 @@ namespace AppleReceiptVerifier.Models
         /// </value>
         [JsonProperty("web_order_line_item_id")]
         public long WebOrderLineItemId { get; set; }
+
+        /// <summary>
+        /// If true, current receipt is for a trial period
+        /// </summary>
+        [JsonProperty("is_trial_period")]
+        public bool IsTrialPeriod { get; set; }
     }
 }
